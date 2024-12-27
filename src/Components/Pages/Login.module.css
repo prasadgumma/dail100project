@@ -1,0 +1,71 @@
+/* login.module.css */
+
+/* Box wrapper with full height and background image */
+.container {
+  height: 100vh;
+  background-image: url("https://cdn.wallpapersafari.com/16/69/sIca4f.jpg");
+  background-size: cover;
+  /* background-position: center; */
+  /* padding-top: 50px; */
+}
+
+/* Inner container with padding and white background */
+.formWrapper {
+  padding-top: 100px;
+  padding-bottom: 50px;
+  /* background-color: rgb(27, 184, 98); */
+  position: absolute;
+  top: 10%;
+  right: 0;
+}
+
+/* Box style for the form with rounded corners and shadow */
+.formBox {
+  padding-top: 100px;
+  /* background-size: cover;
+  background-position: center; */
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 2px 2px 12px rgba(0, 0, 0, 0.1);
+  /* background-color: rgb(255, 255, 255); */
+  width: 380px;
+}
+
+/* Title */
+.title {
+  text-align: center;
+  color: #ebe5e5;
+  margin-bottom: 20px;
+}
+
+/* Form control for text fields and select */
+.formControl {
+  width: 100%;
+}
+
+/* Button style */
+.submitButton {
+  width: 100%;
+  background-color: #24c1c9;
+  color: white;
+  border-radius: 8px;
+}
+
+/* Error messages */
+.errorText {
+  color: red;
+  font-size: 0.875rem;
+}
+.textfieldbackground {
+  background-color: #e2d989eb;
+  color: #ffff;
+  border-radius: 10px;
+  height: 42px;
+}
+
+.textfieldbackground2 {
+  background-color: #ababa8eb;
+  color: #ffff;
+  border-radius: 10px;
+  height: 42px;
+}
