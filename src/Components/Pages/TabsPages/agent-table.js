@@ -8,6 +8,10 @@ import {
   Card,
   CircularProgress,
   IconButton,
+  Dialog,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -18,6 +22,10 @@ import CustomPagination from "./customPagination";
 
 import Cookies from "js-cookie"; // Import js-cookie
 import Header from "../../Tabs/tabs";
+import { useNavigate } from "react-router-dom";
+import FilterDrawer from "./add-agent-drawer";
+import AddAgentDrawer from "./add-agent-drawer";
+import EditAgentDrawer from "./edit-agent-drawer";
 
 const AgentTable = () => {
   const [data, setData] = useState([]);
@@ -27,22 +35,18 @@ const AgentTable = () => {
     pageSize: 25,
   });
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedTripId, setSelectedTripId] = useState(null);
+  const apiurl = process.env.REACT_APP_API_URL;
+  console.log(apiurl, "apiurl");
+
   const [globalSelectedRows, setGlobalSelectedRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDrawer, setOpenDrawer] = useState(false);
   const toggleDrawer = () => setOpenDrawer(!openDrawer);
-  const [status, setStatus] = useState("1");
-  const [searchType, setSearchType] = useState("");
-  const [searchText, setSearchText] = useState("");
-  const [checkDate, setCheckDate] = useState("2");
-  const [dateFilter, setDateFilter] = useState(["", ""]);
-  const [dateRange, setDateRange] = useState({
-    startDate: null,
-    endDate: null,
-  });
-
+  const [openEditDrawer, setOpenEditDrawer] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState(null);
+  const navigate = useNavigate();
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [rowToDelete, setRowToDelete] = useState(null); // Store the row to be deleted
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25); // Default rows per page
 
@@ -67,14 +71,41 @@ const AgentTable = () => {
     setCurrentPage(1); // Reset to the first page
   };
 
-  const handleEdit = (row) => {
-    console.log("Edit clicked for:", row);
-    // Add your logic to edit the row here
+  const handleDelete = async () => {
+    try {
+      // Call your API to delete the row
+      const response = await axios.post(`${apiurl}/agent_masters_delete`, {
+        lml: "sessid", // Replace with session ID
+        k: rowToDelete.uniq, // Unique ID of the agent to delete
+      });
+      if (response.status === 200) {
+        // Filter out the deleted row from the state
+        setData((prevData) =>
+          prevData.filter((item) => item.uniq !== rowToDelete.uniq)
+        );
+        setOpenDeleteDialog(false); // Close the dialog
+      } else {
+        console.error("Error deleting row:", response.data);
+      }
+    } catch (error) {
+      console.error("Error deleting row:", error);
+    }
   };
 
-  const handleDelete = (row) => {
-    console.log("Delete clicked for:", row);
-    // Add your logic to delete the row here
+  const handleOpenDeleteDialog = (row) => {
+    setRowToDelete(row);
+    setOpenDeleteDialog(true);
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setOpenDeleteDialog(false);
+    setRowToDelete(null);
+  };
+  const handleSave = (newAgent) => {
+    setData((prevData) => [
+      ...prevData,
+      { ...newAgent, id: prevData.length + 1 },
+    ]);
   };
 
   const columns = [
@@ -134,14 +165,17 @@ const AgentTable = () => {
     {
       field: "action",
       headerName: "Actions",
-      width: 220,
+      width: 240,
 
       renderCell: (params) => (
         <Box display={"flex"} gap={2}>
           <IconButton color="primary" onClick={() => handleEdit(params.row)}>
             <EditIcon />
           </IconButton>
-          <IconButton color="error" onClick={() => handleDelete(params.row)}>
+          <IconButton
+            color="error"
+            onClick={() => handleOpenDeleteDialog(params.row)}
+          >
             <DeleteIcon />
           </IconButton>
         </Box>
@@ -155,12 +189,9 @@ const AgentTable = () => {
   const fetchData = async (page, size) => {
     setLoading(true); // Start loading
     try {
-      const response = await axios.post(
-        "http://192.168.21.71/devenv/d100_ipbx_ajax_apis/public/index.php/v1/agent_masters_list",
-        {
-          lml: sessid, // Replace with your actual session ID if needed
-        }
-      );
+      const response = await axios.post(`${apiurl}/agent_masters_list`, {
+        lml: sessid, // Replace with your actual session ID if needed
+      });
       console.log(response, "Response");
       const overAllData = response?.data?.resp?.alrt_contacts_list?.map(
         (trip, index) => {
@@ -168,9 +199,6 @@ const AgentTable = () => {
         }
       );
       const todatDate = setData(overAllData);
-      // Assuming the response contains the actual rows and the total number of rows
-      // setData(response?.data?.resp?.alrt_contacts_list); // Update data with the response
-      // setTotalRows(response.total); // Set total number of rows for pagination
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -181,92 +209,44 @@ const AgentTable = () => {
     fetchData();
   }, []);
 
-  // const applyHandler = async () => {
-  //   console.log(`${dateFilter[0]} ${dateFilter[1]}`);
-  //   console.log(searchText, searchType, "searchType");
-  //   if (searchType !== 1 || searchType !== 2) {
-  //     setSearchText("");
-  //   }
-  //   try {
-  //     setLoading(true);
-  //     const response = await axios.post(
-  //       "http://192.168.21.71/devenv/d100_ipbx_ajax_apis/public/index.php/v1/agent_masters_list",
-  //       {
-  //         lml: sessid,
-  //         page: "",
-  //       }
-  //     );
-  //     console.log(response, "responce");
-  //     const overAllData = response?.data?.resp?.trips_list?.map(
-  //       (trip, index) => {
-  //         return { ...trip, id: index + 1 };
-  //       }
-  //     );
-  //     console.log(overAllData, "overAll");
+  const handleEdit = async (row) => {
+    try {
+      setLoading(true);
+      const response = await axios.post(`${apiurl}/agent_masters_list`, {
+        lml: sessid,
+        k: row.uniq, // Get the ID of the selected agent
+      });
 
-  //     setOpenDrawer(false);
-  //     setData(overAllData);
-  //     setTimeout(() => {
-  //       setLoading(false);
-  //     }, 1000);
-  //   } catch (error) {
-  //     console.error("Error fetching members:", error);
-  //   }
-  // };
-
-  // const handleTripIdClick = (tripId) => {
-  //   setSelectedTripId(tripId);
-  //   setDrawerOpen(true);
-  // };
-
-  // Export to CSV function
-  const exportToCSV = () => {
-    const headers =
-      columns
-        .filter((col) => !col.hide)
-        .map((col) => col.headerName)
-        .join(",") + "\n";
-
-    const rows = data
-      .map((row) =>
-        columns
-          .filter((col) => !col.hide)
-          .map((col) => row[col.field] || "")
-          .join(",")
-      )
-      .join("\n");
-
-    const csvContent = headers + rows;
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    if (link.download !== undefined) {
-      const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute("download", "members_list.csv");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      if (response?.status === 200) {
+        const agentDetails = response.data?.resp.alrt_contacts_list[0];
+        setSelectedAgent(agentDetails); // Set the fetched agent details to selectedAgent state
+        setOpenEditDrawer(true); // Open the EditDrawer
+      } else {
+        console.error("Failed to fetch agent details.");
+      }
+    } catch (error) {
+      console.error("Error fetching agent details:", error);
+    } finally {
+      setLoading(false);
     }
   };
+  // const handleRemove = () => {
+  //   setDrawerOpen(false); // Close the drawer after removal
+  //   setOpenDrawer(false);
+  //   setOpenEditDrawer(false);
+  // };
 
-  const handleRemove = () => {
-    setDrawerOpen(false); // Close the drawer after removal
-    setOpenDrawer(false);
-  };
-
-  // const showThebottomButtons = globalSelectedRows.length > 0;
   const total = data?.length;
   console.log(total, "total");
   return (
     <Box>
       <Header />
       <LocalizationProvider>
-        <Box ml={3}>
+        <Box m={3}>
           <Grid container>
             <Grid item xs={12}>
-              <Card sx={{ height: 800 }}>
-                <Box m={2.5}>
+              <Card sx={{ height: 830 }}>
+                <Box mt={13}>
                   <Grid
                     container
                     spacing={2}
@@ -278,7 +258,15 @@ const AgentTable = () => {
                       alignItems="center" // Vertically center the items
                       justifyContent="space-between" // This will push items to the left and right
                     >
-                      <Grid item xs={4} sx={{ ml: "25px", mt: "16px" }}>
+                      <Grid
+                        item
+                        xs={4}
+                        sx={{
+                          ml: "25px",
+                          mb: "15px",
+                          mt: "10px",
+                        }}
+                      >
                         <Typography
                           variant="h5"
                           color="#000"
@@ -286,35 +274,26 @@ const AgentTable = () => {
                           fontFamily={"serif"}
                           width={"50%"}
                         >
-                          Trip List Reports
+                          Agents List
                         </Typography>
                       </Grid>
 
                       <Grid item>
-                        <Box display="flex" alignItems="center" gap={2} m={2}>
-                          <Button
-                            variant="outlined"
-                            color="#000"
-                            onClick={exportToCSV}
-                          >
-                            Export to CSV
-                          </Button>
-
-                          <Button
-                            variant="outlined"
-                            color="#000"
-                            onClick={toggleDrawer}
-                          >
-                            My Filters
-                          </Button>
-                        </Box>
+                        <Button
+                          variant="contained"
+                          // color="#000"
+                          onClick={toggleDrawer}
+                        >
+                          Add New Agent
+                        </Button>
+                        {/* </Box> */}
                       </Grid>
                     </Grid>
                   </Grid>
                   <Box
                     sx={{
                       height: 250,
-                      position: "relative",
+                      position: "absolute",
                       display: "flex",
                       justifyContent: "center",
                       alignItems: "center",
@@ -418,30 +397,45 @@ const AgentTable = () => {
             </Grid>
           </Grid>
 
-          {/* Drawer Component */}
-          {/* <FilterDrawer
-          openDrawer={openDrawer}
-          toggleDrawer={toggleDrawer}
-          data={data}
-          applyHandler={applyHandler}
-          setData={setData}
-          sendStatus={sendStatus}
-          sendSearchType={sendSearchType}
-          sendCheckedDate={sendCheckedDate}
-          dateFilter={dateFilter}
-          setDateFilter={setDateFilter}
-          sendSearchText={sendSearchText}
-          sendDateRange={sendDateRange}
-          onRemove={handleRemove}
-        /> */}
-          {/* <TripDetailsDrawer
-          open={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-          // onClose={toggleDrawer1}
-          tripId={selectedTripId}
-          setDrawerOpen={setDrawerOpen}
-          onRemove={handleRemove}
-        /> */}
+          <AddAgentDrawer
+            openDrawer={openDrawer}
+            toggleDrawer={toggleDrawer}
+            handleSave={handleSave}
+          />
+
+          <EditAgentDrawer
+            openDrawer={openEditDrawer}
+            toggleEditDrawer={() => setOpenEditDrawer(false)} // Close the drawer
+            data={selectedAgent} // Pass the selected agent details
+            handleUpdateAgent={(updatedAgent) => {
+              // Handle update agent after successful form submission
+              console.log("Updated Agent:", updatedAgent);
+              fetchData(); // Refresh the agent list
+              setOpenEditDrawer(false); // Close the edit drawer
+            }}
+          />
+
+          <Dialog
+            open={openDeleteDialog}
+            onClose={handleCloseDeleteDialog}
+            aria-labelledby="alert-dialog-title"
+            aria-describedby="alert-dialog-description"
+          >
+            <DialogContent>
+              <DialogContentText>
+                Are you sure you want to delete this agent? This action cannot
+                be undone.
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleCloseDeleteDialog} color="primary">
+                No
+              </Button>
+              <Button onClick={handleDelete} color="error" autoFocus>
+                Yes
+              </Button>
+            </DialogActions>
+          </Dialog>
         </Box>
       </LocalizationProvider>
     </Box>
@@ -449,292 +443,3 @@ const AgentTable = () => {
 };
 
 export default AgentTable;
-
-// import React, { useEffect, useState } from "react";
-// import {
-//   Box,
-//   Grid,
-//   Card,
-//   Button,
-//   Typography,
-//   CircularProgress,
-// } from "@mui/material";
-// import { DataGrid } from "@mui/x-data-grid";
-// import axios from "axios";
-// import CustomPagination from "./customPagination";
-// import { LocalizationProvider } from "@mui/x-date-pickers";
-// import Cookies from "js-cookie"; // Import js-cookie
-
-// const TripListReports = () => {
-//   const [data, setData] = useState([]); // Data from API
-//   const [loading, setLoading] = useState(false); // Loading state for the data fetch
-//   const [currentPage, setCurrentPage] = useState(1); // Current page for pagination
-//   const [pageSize, setPageSize] = useState(10); // Rows per page
-//   const [totalRows, setTotalRows] = useState(0); // Total rows from the API response
-//   const [globalSelectedRows, setGlobalSelectedRows] = useState([]); // Tracking selected rows
-
-//   // const columns = [
-//   //   { field: "id", headerName: "ID", width: 90 },
-//   //   { field: "name", headerName: "Name", width: 200 },
-//   //   { field: "status", headerName: "Status", width: 150 },
-//   //   // Add more columns as needed
-//   // ];
-
-//   const columns = [
-//     {
-//       field: "id",
-//       headerName: "S.No",
-//       headerAlign: "center",
-//       width: 100,
-//       align: "center",
-//     },
-
-//     {
-//       field: "nm",
-//       headerName: "Agent Name",
-//       filterable: true,
-//       width: 200,
-//     },
-//     {
-//       field: "exnum",
-//       headerName: "Agent Username",
-//       width: 230,
-//     },
-//     {
-//       field: "code",
-//       headerName: "Agent Code",
-//       width: 200,
-//     },
-
-//     {
-//       field: "mob",
-//       headerName: "Mobile Number",
-//       width: 200,
-//     },
-
-//     {
-//       field: "sts",
-//       headerName: " Status",
-//       width: 180,
-
-//       renderCell: (params) => (
-//         <Typography
-//           sx={{
-//             textAlign: "center",
-//             width: 120,
-//             backgroundColor: params.row.livsts === 1 ? "#4caf50" : "#f44336", // Green for enabled, red for disabled
-//             color: "white",
-//             padding: "2px 6px",
-//             borderRadius: "4px",
-//             display: "inline-block", // Ensures the background fits the text
-//           }}
-//         >
-//           {params.row.livsts === 1 ? "Started" : "End"}
-//         </Typography>
-//       ),
-//     },
-
-//     {
-//       field: "action",
-//       headerName: "Actions",
-//       width: 200,
-
-//       renderCell: (params) => (
-//         <Box display={"flex"} justifyContent={"space-between"} gap={2}>
-//           {/* View Icon with Name */}
-//           {/* <Box>
-//             <IconButton color="primary">
-//               <Visibility />
-//             </IconButton>
-//             <Typography sx={{ display: "inline" }}>View</Typography>
-//           </Box> */}
-//           {/* <ViewButton
-//             tripId={params.row.tripid}
-//             tripGenId={params.row.trip_genid}
-//           /> */}
-//           {/* <Box>
-
-//             <IconButton color="primary">
-//               <PlaceIcon />
-//             </IconButton>
-//             <Typography sx={{ display: "inline" }}>Map</Typography>
-//           </Box> */}
-//           {/* <MapButton
-//             tripId={params.row.tripid}
-//             tripGenId={params.row.trip_genid}
-//           /> */}
-//         </Box>
-//       ),
-//     },
-//   ];
-
-//   const sessid = Cookies.get("sessid"); // Get sessid from cookies
-
-//   // Fetch data from API with pagination
-//   const fetchData = async (page, size) => {
-//     setLoading(true); // Start loading
-//     try {
-//       const response = await axios.post(
-//         "http://192.168.21.71/devenv/d100_ipbx_ajax_apis/public/index.php/v1/agent_masters_list",
-//         {
-//           lml: sessid, // Replace with your actual session ID if needed
-//         }
-//       );
-//       console.log(response, "Response");
-//       const overAllData = response?.data?.resp?.alrt_contacts_list?.map(
-//         (trip, index) => {
-//           return { ...trip, id: index + 1 };
-//         }
-//       );
-//       const todatDate = setData(overAllData);
-//       // Assuming the response contains the actual rows and the total number of rows
-//       // setData(response?.data?.resp?.alrt_contacts_list); // Update data with the response
-//       // setTotalRows(response.total); // Set total number of rows for pagination
-//     } catch (error) {
-//       console.error("Error fetching data:", error);
-//     } finally {
-//       setLoading(false); // End loading
-//     }
-//   };
-
-//   // Fetch data when the page or page size changes
-//   useEffect(() => {
-//     fetchData(currentPage, pageSize);
-//   }, [currentPage, pageSize]);
-
-//   // Pagination handlers
-//   const handlePageSizeChange = (newPageSize) => {
-//     setPageSize(newPageSize);
-//     setCurrentPage(1); // Reset to page 1 when page size changes
-//   };
-
-//   const handlePreviousPage = () => {
-//     setCurrentPage((prevPage) => Math.max(prevPage - 1, 1)); // Go to the previous page
-//   };
-
-//   const handleNextPage = () => {
-//     setCurrentPage((prevPage) =>
-//       Math.min(prevPage + 1, Math.ceil(totalRows / pageSize))
-//     ); // Go to the next page
-//   };
-//   console.log(data, "Data");
-//   return (
-//     <LocalizationProvider>
-//       <Box ml={3}>
-//         <Grid container>
-//           <Grid item xs={12}>
-//             <Card sx={{ height: 800 }}>
-//               <Box m={2.5}>
-//                 <Grid container spacing={2} alignItems="right">
-//                   <Grid
-//                     container
-//                     spacing={2}
-//                     alignItems="center"
-//                     justifyContent="space-between"
-//                   >
-//                     <Grid item xs={4} sx={{ ml: "25px", mt: "16px" }}>
-//                       <Typography
-//                         variant="h5"
-//                         color="#000"
-//                         align="left"
-//                         fontFamily={"serif"}
-//                         width={"50%"}
-//                       >
-//                         Trip List Reports
-//                       </Typography>
-//                     </Grid>
-
-//                     <Grid item>
-//                       <Box display="flex" alignItems="center" gap={2} m={2}>
-//                         <Button
-//                           variant="outlined"
-//                           color="primary"
-//                           onClick={() => {
-//                             /* Export logic */
-//                           }}
-//                         >
-//                           Export to CSV
-//                         </Button>
-
-//                         <Button
-//                           variant="outlined"
-//                           color="primary"
-//                           onClick={() => {
-//                             /* Filter logic */
-//                           }}
-//                         >
-//                           My Filters
-//                         </Button>
-//                       </Box>
-//                     </Grid>
-//                   </Grid>
-//                 </Grid>
-
-//                 <Box
-//                   sx={{
-//                     height: 250,
-//                     position: "relative",
-//                     display: "flex",
-//                     justifyContent: "center",
-//                     alignItems: "center",
-//                     mt: 8,
-//                     borderRadius: "1px",
-//                     backgroundColor: "#f9f9f9",
-//                   }}
-//                 >
-//                   {loading ? (
-//                     <Box
-//                       display="flex"
-//                       justifyContent="center"
-//                       alignItems="center"
-//                       height="100%"
-//                     >
-//                       <CircularProgress />
-//                     </Box>
-//                   ) : (
-//                     <Box width={"100%"} mt={35}>
-//                       <DataGrid
-//                         rows={data} // Data fetched from the API
-//                         columns={columns} // Column configuration
-//                         disableSelectionOnClick={true}
-//                         rowSelectionModel={globalSelectedRows}
-//                         loading={loading} // Loading spinner when fetching data
-//                         hideFooter
-//                         getRowHeight={() => "auto"}
-//                         rowCount={totalRows} // Total rows for pagination
-//                         paginationMode="server" // Server-side pagination
-//                         pageSize={pageSize} // Set page size
-//                         page={currentPage - 1} // Set current page (zero-indexed for DataGrid)
-//                         sx={{
-//                           height: 620,
-//                           width: "100%",
-//                           "& .MuiDataGrid-cell": {
-//                             display: "flex",
-//                             justifyContent: "center",
-//                             alignItems: "center",
-//                           },
-//                         }}
-//                       />
-
-//                       <CustomPagination
-//                         currentPage={currentPage}
-//                         totalRows={totalRows}
-//                         pageSize={pageSize}
-//                         handlePageSizeChange={handlePageSizeChange}
-//                         handlePreviousPage={handlePreviousPage}
-//                         handleNextPage={handleNextPage}
-//                         totalPages={Math.ceil(totalRows / pageSize)}
-//                       />
-//                     </Box>
-//                   )}
-//                 </Box>
-//               </Box>
-//             </Card>
-//           </Grid>
-//         </Grid>
-//       </Box>
-//     </LocalizationProvider>
-//   );
-// };
-
-// export default TripListReports;

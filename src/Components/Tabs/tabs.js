@@ -12,7 +12,7 @@ import {
 import axios from "axios";
 import Cookies from "js-cookie"; // Import js-cookie
 import { Link, useNavigate } from "react-router-dom";
-import AddNewAgent from "../Pages/TabsPages/dashboard-static";
+import AddNewAgent from "../Pages/TabsPages/addNewAgent";
 import AgentTable from "../Pages/TabsPages/agent-table";
 
 const Header = () => {
@@ -81,13 +81,15 @@ const Header = () => {
 
   return (
     <Box m={2}>
-      <Box display={"flex"} justifyContent="space-between">
+      <Box
+        display={"flex"}
+        justifyContent="space-between"
+        position={"absolute"}
+      >
         <Typography>
           <strong>KRISHNAS IPBX</strong>
         </Typography>
-        <Typography>
-          <strong>User</strong>
-        </Typography>
+        <Typography>{/* <strong>User</strong> */}</Typography>
       </Box>
       <AppBar sx={{ mt: 6 }}>
         <Toolbar>
