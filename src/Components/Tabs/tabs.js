@@ -12,8 +12,6 @@ import {
 import axios from "axios";
 import Cookies from "js-cookie"; // Import js-cookie
 import { Link, useNavigate } from "react-router-dom";
-import AddNewAgent from "../Pages/TabsPages/addNewAgent";
-import AgentTable from "../Pages/TabsPages/agent-table";
 
 const Header = () => {
   const [sliderData, setSliderData] = useState([]);
@@ -74,7 +72,6 @@ const Header = () => {
   const handleSubmenuItemClick = (submenuItem) => {
     // Check if the submenu item is "Dashboard Static" and navigate
     if (submenuItem.mname === "Dashboard Static") {
-      // navigate("/new-dashboard"); // Navigate to the desired page
     }
     handleCloseSubmenu(); // Close the submenu
   };
@@ -91,9 +88,9 @@ const Header = () => {
         </Typography>
         <Typography>{/* <strong>User</strong> */}</Typography>
       </Box>
-      <AppBar sx={{ mt: 6 }}>
+      <AppBar sx={{ mt: 6, backgroundColor: "#175b61" }}>
         <Toolbar>
-          <Box>
+          <Box ml={10}>
             <Tabs
               // value={activeTab}
               onChange={handleTabChange}

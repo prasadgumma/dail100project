@@ -26,8 +26,8 @@ const CustomPagination = ({
       display="flex"
       justifyContent="flex-end"
       alignItems="center"
-      mt={2}
       gap={3}
+      m={1.5}
     >
       {/* Page Size Selector */}
       <Select

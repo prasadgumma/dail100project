@@ -17,7 +17,8 @@ import { DataGrid } from "@mui/x-data-grid";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-
+import RemoveIcon from "@mui/icons-material/Remove";
+import HighlightOffIcon from "@mui/icons-material/HighlightOff";
 import CustomPagination from "./customPagination";
 
 import Cookies from "js-cookie"; // Import js-cookie
@@ -26,29 +27,29 @@ import { useNavigate } from "react-router-dom";
 import FilterDrawer from "./add-agent-drawer";
 import AddAgentDrawer from "./add-agent-drawer";
 import EditAgentDrawer from "./edit-agent-drawer";
+import { Snackbar, Alert } from "@mui/material";
 
 const AgentTable = () => {
   const [data, setData] = useState([]);
-  const [checkedBox, setCheckedBox] = useState(true);
-  const [paginationModel, setPaginationModel] = useState({
-    page: 0,
-    pageSize: 25,
-  });
-
-  const apiurl = process.env.REACT_APP_API_URL;
-  console.log(apiurl, "apiurl");
 
   const [globalSelectedRows, setGlobalSelectedRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDrawer, setOpenDrawer] = useState(false);
   const toggleDrawer = () => setOpenDrawer(!openDrawer);
   const [openEditDrawer, setOpenEditDrawer] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState(null);
+  const [selectedAgent, setSelectedAgent] = useState();
   const navigate = useNavigate();
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [rowToDelete, setRowToDelete] = useState(null); // Store the row to be deleted
+  const [rowToDelete, setRowToDelete] = useState(); // Store the row to be deleted
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25); // Default rows per page
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success", // "success", "error", "warning", or "info"
+  });
+
+  const apiurl = process.env.REACT_APP_API_URL;
 
   const totalRows = data?.length || 0; // Ensure data is not undefined
   const totalPages = pageSize === "All" ? 1 : Math.ceil(totalRows / pageSize);
@@ -71,18 +72,31 @@ const AgentTable = () => {
     setCurrentPage(1); // Reset to the first page
   };
 
+  const handleCloseSnackbar = () => {
+    setSnackbar((prev) => ({ ...prev, open: false }));
+  };
+
   const handleDelete = async () => {
+    console.log(rowToDelete);
     try {
       // Call your API to delete the row
       const response = await axios.post(`${apiurl}/agent_masters_delete`, {
-        lml: "sessid", // Replace with session ID
+        lml: sessid, // Replace with session ID
         k: rowToDelete.uniq, // Unique ID of the agent to delete
       });
+
       if (response.status === 200) {
         // Filter out the deleted row from the state
+        setSnackbar({
+          open: true,
+          message: "Agent Deleted successfully!",
+          severity: "success",
+        });
+
         setData((prevData) =>
           prevData.filter((item) => item.uniq !== rowToDelete.uniq)
         );
+        // await fetchData();
         setOpenDeleteDialog(false); // Close the dialog
       } else {
         console.error("Error deleting row:", response.data);
@@ -93,6 +107,7 @@ const AgentTable = () => {
   };
 
   const handleOpenDeleteDialog = (row) => {
+    console.log(row);
     setRowToDelete(row);
     setOpenDeleteDialog(true);
   };
@@ -113,7 +128,7 @@ const AgentTable = () => {
       field: "id",
       headerName: "S.No",
       headerAlign: "center",
-      width: 100,
+      flex: 0.5,
       align: "center",
     },
 
@@ -121,29 +136,29 @@ const AgentTable = () => {
       field: "nm",
       headerName: "Agent Name",
       filterable: true,
-      width: 300,
+      flex: 1,
     },
     {
       field: "exnum",
       headerName: "Agent Username",
-      width: 200,
+      flex: 1,
     },
     {
       field: "code",
       headerName: "Agent Code",
-      width: 200,
+      flex: 1,
     },
 
     {
       field: "mob",
       headerName: "Mobile Number",
-      width: 200,
+      flex: 1,
     },
 
     {
       field: "sts",
       headerName: " Status",
-      width: 200,
+      flex: 1,
 
       renderCell: (params) => (
         <Typography
@@ -165,7 +180,7 @@ const AgentTable = () => {
     {
       field: "action",
       headerName: "Actions",
-      width: 240,
+      flex: 1,
 
       renderCell: (params) => (
         <Box display={"flex"} gap={2}>
@@ -193,7 +208,7 @@ const AgentTable = () => {
         lml: sessid, // Replace with your actual session ID if needed
       });
       console.log(response, "Response");
-      const overAllData = response?.data?.resp?.alrt_contacts_list?.map(
+      const overAllData = response?.data?.resp?.agnt_masters_list?.map(
         (trip, index) => {
           return { ...trip, id: index + 1 };
         }
@@ -209,16 +224,21 @@ const AgentTable = () => {
     fetchData();
   }, []);
 
+  const onRender = () => {
+    fetchData();
+  };
+
   const handleEdit = async (row) => {
+    console.log(row, "row");
     try {
       setLoading(true);
       const response = await axios.post(`${apiurl}/agent_masters_list`, {
         lml: sessid,
         k: row.uniq, // Get the ID of the selected agent
       });
-
+      //alrt_contacts_list
       if (response?.status === 200) {
-        const agentDetails = response.data?.resp.alrt_contacts_list[0];
+        const agentDetails = response.data?.resp.agnt_masters_list[0];
         setSelectedAgent(agentDetails); // Set the fetched agent details to selectedAgent state
         setOpenEditDrawer(true); // Open the EditDrawer
       } else {
@@ -230,11 +250,6 @@ const AgentTable = () => {
       setLoading(false);
     }
   };
-  // const handleRemove = () => {
-  //   setDrawerOpen(false); // Close the drawer after removal
-  //   setOpenDrawer(false);
-  //   setOpenEditDrawer(false);
-  // };
 
   const total = data?.length;
   console.log(total, "total");
@@ -245,7 +260,7 @@ const AgentTable = () => {
         <Box m={3}>
           <Grid container>
             <Grid item xs={12}>
-              <Card sx={{ height: 830 }}>
+              <Card>
                 <Box mt={13}>
                   <Grid
                     container
@@ -264,7 +279,7 @@ const AgentTable = () => {
                         sx={{
                           ml: "25px",
                           mb: "15px",
-                          mt: "10px",
+                          mt: 1,
                         }}
                       >
                         <Typography
@@ -292,14 +307,7 @@ const AgentTable = () => {
                   </Grid>
                   <Box
                     sx={{
-                      height: 250,
-                      position: "absolute",
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      mt: 8,
                       borderRadius: "1px",
-
                       backgroundColor: "#f9f9f9",
                     }}
                   >
@@ -313,7 +321,7 @@ const AgentTable = () => {
                         <CircularProgress />
                       </Box>
                     ) : (
-                      <Box width={"100%"} mt={35}>
+                      <Box width={"100%"}>
                         <DataGrid
                           rows={paginatedRows || []}
                           columns={columns}
@@ -325,8 +333,8 @@ const AgentTable = () => {
                           rowCount={data?.length}
                           paginationMode="server" // Very Important Pagination
                           sx={{
-                            height: 620,
-                            width: "100%",
+                            height: "66vh",
+                            width: "98vw",
 
                             "& .MuiDataGrid-cell": {
                               display: "flex",
@@ -399,14 +407,17 @@ const AgentTable = () => {
 
           <AddAgentDrawer
             openDrawer={openDrawer}
-            toggleDrawer={toggleDrawer}
+            toggleDrawer={() => setOpenDrawer(true)}
+            setOpenDrawer={setOpenDrawer}
             handleSave={handleSave}
+            onRender={onRender}
           />
 
           <EditAgentDrawer
             openDrawer={openEditDrawer}
-            toggleEditDrawer={() => setOpenEditDrawer(false)} // Close the drawer
+            toggleEditDrawer={() => setOpenEditDrawer(true)} // Close the drawer
             data={selectedAgent} // Pass the selected agent details
+            setOpenEditDrawer={setOpenEditDrawer}
             handleUpdateAgent={(updatedAgent) => {
               // Handle update agent after successful form submission
               console.log("Updated Agent:", updatedAgent);
@@ -415,7 +426,7 @@ const AgentTable = () => {
             }}
           />
 
-          <Dialog
+          {/* <Dialog
             open={openDeleteDialog}
             onClose={handleCloseDeleteDialog}
             aria-labelledby="alert-dialog-title"
@@ -423,20 +434,95 @@ const AgentTable = () => {
           >
             <DialogContent>
               <DialogContentText>
-                Are you sure you want to delete this agent? This action cannot
-                be undone.
+                <Typography variant="h5">
+                  <strong>Are you sure ?</strong>
+                </Typography>
+                <Typography>Do You Want To Dlete? </Typography>
               </DialogContentText>
             </DialogContent>
             <DialogActions>
-              <Button onClick={handleCloseDeleteDialog} color="primary">
-                No
-              </Button>
-              <Button onClick={handleDelete} color="error" autoFocus>
+              <Button
+                onClick={handleDelete}
+                color="primary"
+                variant="contained"
+                autoFocus
+              >
                 Yes
               </Button>
+              <Button
+                onClick={handleCloseDeleteDialog}
+                color="error"
+                variant="contained"
+              >
+                No
+              </Button>
             </DialogActions>
+          </Dialog> */}
+          <Dialog
+            open={openDeleteDialog}
+            onClose={handleCloseDeleteDialog}
+            aria-labelledby="alert-dialog-title"
+            aria-describedby="alert-dialog-description"
+          >
+            <DialogContent sx={{ padding: 3, width: 300 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  paddingBottom: 2,
+                }}
+              >
+                <IconButton
+                  // onClick={handleRemoveIconClick} // You can define this function
+                  color="error"
+                >
+                  <HighlightOffIcon sx={{ fontSize: 45 }} />
+                </IconButton>
+              </Box>
+              <DialogContentText sx={{ textAlign: "center" }}>
+                <Typography variant="h5">
+                  <strong>Are you sure?</strong>
+                </Typography>
+                <Typography>Do you want to delete?</Typography>
+              </DialogContentText>
+            </DialogContent>
+
+            <DialogActions sx={{ padding: 2, justifyContent: "center" }}>
+              <Button
+                onClick={handleDelete}
+                color="primary"
+                variant="contained"
+                autoFocus
+              >
+                Yes
+              </Button>
+              <Button
+                onClick={handleCloseDeleteDialog}
+                color="error"
+                variant="contained"
+              >
+                No
+              </Button>
+            </DialogActions>
+
+            {/* Remove Icon Button at the bottom */}
           </Dialog>
         </Box>
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000} // Automatically close after 6 seconds
+          onClose={handleCloseSnackbar}
+          anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        >
+          <Alert
+            onClose={handleCloseSnackbar}
+            severity={snackbar.severity}
+            variant="filled"
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </LocalizationProvider>
     </Box>
   );
