@@ -22,12 +22,13 @@ import HighlightOffIcon from "@mui/icons-material/HighlightOff";
 import CustomPagination from "./customPagination";
 
 import Cookies from "js-cookie"; // Import js-cookie
-import Header from "../../Tabs/tabs";
+// import Header from "../../Tabs/tabs";
 import { useNavigate } from "react-router-dom";
 import FilterDrawer from "./add-agent-drawer";
 import AddAgentDrawer from "./add-agent-drawer";
 import EditAgentDrawer from "./edit-agent-drawer";
 import { Snackbar, Alert } from "@mui/material";
+import Header from "../../../Tabs/tabs";
 
 const AgentTable = () => {
   const [data, setData] = useState([]);
@@ -139,7 +140,7 @@ const AgentTable = () => {
       flex: 1,
     },
     {
-      field: "exnum",
+      field: "agnt_unm",
       headerName: "Agent Username",
       flex: 1,
     },

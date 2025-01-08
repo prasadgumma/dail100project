@@ -15,7 +15,7 @@ import axios from "axios";
 import Cookies from "js-cookie"; // Import js-cookie
 import { Snackbar, Alert } from "@mui/material";
 
-const EditAgentDrawer = ({
+const EditExtensionNumber = ({
   openDrawer,
   toggleEditDrawer,
   data,
@@ -23,12 +23,8 @@ const EditAgentDrawer = ({
   setOpenEditDrawer,
 }) => {
   const [formData, setFormData] = useState({
-    name: "",
+    extensionNumber: "",
 
-    mobileNumber: "",
-    code: "",
-    userName: "",
-    password: "",
     status: false,
   });
   const [snackbar, setSnackbar] = useState({
@@ -42,11 +38,9 @@ const EditAgentDrawer = ({
   useEffect(() => {
     if (data) {
       setFormData({
-        name: data.nm || "",
-        mobileNumber: data.mob || "",
-        code: data.code || "",
-        userName: data.exnum || "",
-        password: data.pswd,
+        extensionNumber: data.num || "",
+
+        // password: data.pswd,
         status: data.sts === 1 ? "true" : "false" || false,
       });
     }
@@ -67,14 +61,12 @@ const EditAgentDrawer = ({
     };
 
     try {
-      await axios.post(`${apiurl}/agent_masters_update`, {
+      await axios.post(`${apiurl}/extension_masters_update`, {
         lml: sessid,
         k: data.uniq,
-        nm: formData.name,
-        mob: formData.mobileNumber,
-        cod: formData.agentCode,
-        uname: formData.userName,
-        pswd: formData.password,
+
+        num: formData.extensionNumber,
+
         sts: 1,
       });
       setSnackbar({
@@ -112,7 +104,7 @@ const EditAgentDrawer = ({
             alignItems="center"
           >
             <Typography variant="h5" gutterBottom>
-              <strong>Add New Agent</strong>
+              <strong>Add Extension Number</strong>
             </Typography>
             <IconButton onClick={() => setOpenEditDrawer(false)} edge="start">
               <CancelIcon />
@@ -122,54 +114,14 @@ const EditAgentDrawer = ({
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Name"
-                name="name"
-                value={formData.name}
+                label="Extension Number"
+                name="extensionNumber"
+                value={formData.extensionNumber}
                 onChange={handleChange}
                 required
               />
             </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Mobile Number"
-                name="mobileNumber"
-                value={formData.mobileNumber}
-                onChange={handleChange}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Agent Code"
-                name="agentCode"
-                value={formData.code}
-                onChange={handleChange}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Username"
-                name="userName"
-                value={formData.userName}
-                onChange={handleChange}
-                required
-              />
-            </Grid>
-            {/* <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.status}
-                    onChange={() =>
-                      setFormData((prev) => ({ ...prev, status: !prev.status }))
-                    }
-                  />
-                }
-                label="Status"
-              />
-            </Grid> */}
+
             <Grid item xs={12}>
               <Box display="flex" alignItems="center">
                 {/* Label for Status */}
@@ -255,4 +207,4 @@ const EditAgentDrawer = ({
   );
 };
 
-export default EditAgentDrawer;
+export default EditExtensionNumber;
