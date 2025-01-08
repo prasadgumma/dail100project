@@ -71,7 +71,7 @@ const EditExtensionNumber = ({
       });
       setSnackbar({
         open: true,
-        message: "Agent Updated successfully!",
+        message: "Extension Number Updated successfully!",
         severity: "success",
       });
       handleUpdateAgent(updatedAgent); // Pass the updated agent to the parent component
