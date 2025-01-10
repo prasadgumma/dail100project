@@ -211,7 +211,6 @@ const ExtensionMastersTable = () => {
   const handleEdit = async (row) => {
     console.log(row, "row");
     try {
-      setLoading(true);
       const response = await axios.post(`${apiurl}/extension_masters_list`, {
         lml: sessid,
         k: row.uniq, // Get the ID of the selected agent
@@ -226,8 +225,6 @@ const ExtensionMastersTable = () => {
       }
     } catch (error) {
       console.error("Error fetching agent details:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
